@@ -5,6 +5,29 @@ import { v } from "convex/values";
 export default defineSchema({
   ...authTables,
 
+  users: defineTable({
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    role: v.optional(v.union(v.literal("owner"), v.literal("member"))),
+    approvalStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("rejected"),
+      ),
+    ),
+    approvedAt: v.optional(v.number()),
+    approvedBy: v.optional(v.id("users")),
+  })
+    .index("email", ["email"])
+    .index("phone", ["phone"])
+    .index("by_approval_status", ["approvalStatus"]),
+
   clients: defineTable({
     name: v.string(),
     industry: v.string(),

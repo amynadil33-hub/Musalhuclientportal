@@ -17,6 +17,12 @@ function getErrorMessage(error: unknown) {
     if (message.includes("AccountAlreadyExists")) {
       return "An account already exists for this email.";
     }
+    if (message.includes("AccountPendingApproval")) {
+      return "Your account is waiting for owner approval.";
+    }
+    if (message.includes("AccountRejected")) {
+      return "This account request was not approved.";
+    }
     return message || "Authentication failed.";
   }
   return "Authentication failed.";
@@ -26,8 +32,7 @@ export function SignInForm() {
   const { signIn } = useAuthActions();
   const [flow, setFlow] = useState<AuthFlow>("signIn");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const allowSignUp =
-    import.meta.env.DEV || import.meta.env.VITE_ALLOW_SIGN_UP === "true";
+  const allowSignUp = true;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -94,7 +99,7 @@ export function SignInForm() {
             : "Creating account..."
           : flow === "signIn"
             ? "Sign in"
-            : "Create account"}
+            : "Request account"}
       </Button>
 
       {allowSignUp && (

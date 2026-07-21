@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { toast } from "sonner";
 import {
   AlertCircle,
+  Check,
   CheckCircle2,
   RefreshCw,
   Save,
@@ -18,6 +19,8 @@ export default function SettingsPage() {
   const monthlyUsage = useQuery(api.settings.getMonthly);
   const setSetting = useMutation(api.settings.setSetting);
   const checkProviders = useAction(api.ai.providerHealth.checkProviders);
+  const teamAccounts = useQuery(api.users.listTeamAccounts);
+  const setTeamAccountApproval = useMutation(api.users.setTeamAccountApproval);
 
   const defaultQuality = useQuery(api.settings.getSetting, {
     key: "default_image_quality",
@@ -31,6 +34,7 @@ export default function SettingsPage() {
 
   const [saving, setSaving] = useState<string | null>(null);
   const [checkingProviders, setCheckingProviders] = useState(false);
+  const [updatingAccount, setUpdatingAccount] = useState<string | null>(null);
   const [providerStatus, setProviderStatus] = useState<Awaited<
     ReturnType<typeof checkProviders>
   > | null>(null);
@@ -67,6 +71,23 @@ export default function SettingsPage() {
     }
   };
 
+  const handleAccountApproval = async (
+    userId: Parameters<typeof setTeamAccountApproval>[0]["userId"],
+    status: "approved" | "rejected",
+  ) => {
+    setUpdatingAccount(userId);
+    try {
+      await setTeamAccountApproval({ userId, status });
+      toast.success(status === "approved" ? "Team account approved" : "Team account rejected");
+    } catch (error) {
+      toast.error("Could not update team account", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setUpdatingAccount(null);
+    }
+  };
+
   const getValue = (key: string, fallback: string) =>
     tempValues[key] ??
     (key === "default_image_quality"
@@ -90,6 +111,60 @@ export default function SettingsPage() {
         <p className="text-sm text-muted-foreground mt-1">
           Configure your creative studio
         </p>
+      </div>
+
+      {/* Team Access */}
+      <div className="bg-card border border-border rounded-lg p-5 space-y-4">
+        <div>
+          <h2 className="text-sm font-heading font-semibold text-foreground">
+            Team Account Approvals
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Only the owner can approve access to the Creative Studio.
+          </p>
+        </div>
+        {teamAccounts === undefined ? (
+          <Skeleton className="h-20 w-full" />
+        ) : teamAccounts.length === 0 ? (
+          <p className="text-xs text-muted-foreground rounded-md border border-border bg-muted/30 p-3">
+            No team account requests yet.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {teamAccounts.map((account) => (
+              <div
+                key={account._id}
+                className="flex flex-col gap-3 rounded-md border border-border bg-muted/20 p-3 sm:flex-row sm:items-center"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {account.email}
+                  </p>
+                  <p className="text-xs capitalize text-muted-foreground">
+                    Status: {account.approvalStatus}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleAccountApproval(account._id, "approved")}
+                    disabled={updatingAccount === account._id || account.approvalStatus === "approved"}
+                  >
+                    <Check size={13} /> Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleAccountApproval(account._id, "rejected")}
+                    disabled={updatingAccount === account._id || account.approvalStatus === "rejected"}
+                  >
+                    <XCircle size={13} /> Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* API Keys Notice */}
