@@ -19,7 +19,11 @@ export default function SettingsPage() {
   const monthlyUsage = useQuery(api.settings.getMonthly);
   const setSetting = useMutation(api.settings.setSetting);
   const checkProviders = useAction(api.ai.providerHealth.checkProviders);
-  const teamAccounts = useQuery(api.users.listTeamAccounts);
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const teamAccounts = useQuery(
+    api.users.listTeamAccounts,
+    currentUser?.role === "owner" ? {} : "skip",
+  );
   const setTeamAccountApproval = useMutation(api.users.setTeamAccountApproval);
 
   const defaultQuality = useQuery(api.settings.getSetting, {
@@ -114,7 +118,8 @@ export default function SettingsPage() {
       </div>
 
       {/* Team Access */}
-      <div className="bg-card border border-border rounded-lg p-5 space-y-4">
+      {currentUser?.role === "owner" && (
+        <div className="bg-card border border-border rounded-lg p-5 space-y-4">
         <div>
           <h2 className="text-sm font-heading font-semibold text-foreground">
             Team Account Approvals
@@ -165,7 +170,8 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {/* API Keys Notice */}
       <div className="bg-card border border-primary/20 rounded-lg p-5 space-y-3">

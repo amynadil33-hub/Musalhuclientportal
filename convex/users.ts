@@ -29,7 +29,15 @@ export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    return userId === null ? null : await ctx.db.get(userId);
+    if (userId === null) return null;
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    const isOwner = user.email?.trim().toLowerCase() === getOwnerEmail();
+    return {
+      ...user,
+      role: isOwner ? ("owner" as const) : user.role,
+      approvalStatus: isOwner ? ("approved" as const) : user.approvalStatus,
+    };
   },
 });
 

@@ -43,10 +43,16 @@ export function SignInForm() {
       await signIn("password", formData);
       toast.success(flow === "signIn" ? "Welcome back" : "Account created");
     } catch (error) {
+      const description = getErrorMessage(error);
+      if (flow === "signUp" && description.includes("waiting for owner approval")) {
+        toast.success("Account request submitted", { description });
+        setFlow("signIn");
+        return;
+      }
       toast.error(
         flow === "signIn" ? "Could not sign in" : "Could not sign up",
         {
-          description: getErrorMessage(error),
+          description,
         },
       );
     } finally {
