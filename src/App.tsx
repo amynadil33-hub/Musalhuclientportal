@@ -11,6 +11,10 @@ import ImageStudioPage from "./pages/image-studio/page.tsx";
 import ReelStudioPage from "./pages/reel-studio/page.tsx";
 import GeneratedLibraryPage from "./pages/library/page.tsx";
 import SettingsPage from "./pages/settings/page.tsx";
+import ComposerListPage from "./pages/composer/page.tsx";
+import ComposerEditorPage from "./pages/composer/[compositionId]/page.tsx";
+import DhivehiPhrasesPage from "./pages/dhivehi-phrases/page.tsx";
+import DhivehiFontsPage from "./pages/settings/dhivehi-fonts/page.tsx";
 
 export default function App() {
   return (
@@ -29,7 +33,17 @@ export default function App() {
             <Route path="/image-studio" element={<ImageStudioPage />} />
             <Route path="/reel-studio" element={<ReelStudioPage />} />
             <Route path="/library" element={<GeneratedLibraryPage />} />
+            <Route path="/composer" element={<ComposerListPage />} />
+            <Route
+              path="/composer/:compositionId"
+              element={<ComposerEditorPage />}
+            />
+            <Route path="/dhivehi-phrases" element={<DhivehiPhrasesPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route
+              path="/settings/dhivehi-fonts"
+              element={<DhivehiFontsPage />}
+            />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

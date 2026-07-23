@@ -67,6 +67,18 @@ export default defineSchema({
     wordsToUse: v.optional(v.array(v.string())),
     wordsToAvoid: v.optional(v.array(v.string())),
     ctaStyle: v.optional(v.string()),
+    // Dhivehi Composer typography defaults (optional)
+    dvHeadlineFontId: v.optional(v.id("dhivehi_fonts")),
+    dvSubheadlineFontId: v.optional(v.id("dhivehi_fonts")),
+    dvBodyFontId: v.optional(v.id("dhivehi_fonts")),
+    dvPriceFontId: v.optional(v.id("dhivehi_fonts")),
+    dvCtaFontId: v.optional(v.id("dhivehi_fonts")),
+    enHeadlineFont: v.optional(v.string()),
+    enBodyFont: v.optional(v.string()),
+    minHeadlineSize: v.optional(v.number()),
+    minBodySize: v.optional(v.number()),
+    headlineLineHeight: v.optional(v.number()),
+    maxHeadlineLines: v.optional(v.number()),
   }).index("by_client", ["clientId"]),
 
   target_audiences: defineTable({
@@ -268,4 +280,72 @@ export default defineSchema({
     key: v.string(),
     value: v.string(),
   }).index("by_key", ["key"]),
+
+  // ---------------------------------------------------------------------------
+  // DHIVEHI AD COMPOSER
+  // ---------------------------------------------------------------------------
+
+  dhivehi_fonts: defineTable({
+    displayName: v.string(),
+    cssFamily: v.string(),
+    storageId: v.optional(v.string()),
+    fontUrl: v.optional(v.string()),
+    fileFormat: v.string(), // woff2 | woff | ttf | otf
+    fontWeight: v.optional(v.string()),
+    fontStyle: v.optional(v.string()),
+    isVariable: v.optional(v.boolean()),
+    minWeight: v.optional(v.number()),
+    maxWeight: v.optional(v.number()),
+    supportedUses: v.optional(v.array(v.string())),
+    licenceName: v.optional(v.string()),
+    licenceNotes: v.optional(v.string()),
+    commercialUseConfirmed: v.optional(v.boolean()),
+    // pending | supported | partial | failed | unavailable
+    glyphValidationStatus: v.string(),
+    active: v.boolean(),
+    createdBy: v.optional(v.string()),
+  }).index("by_active", ["active"]),
+
+  dhivehi_compositions: defineTable({
+    clientId: v.id("clients"),
+    campaignId: v.optional(v.id("campaigns")),
+    sourceGenerationId: v.optional(v.id("image_generations")),
+    title: v.string(),
+    canvasWidth: v.number(),
+    canvasHeight: v.number(),
+    outputFormat: v.string(),
+    backgroundStorageId: v.optional(v.string()),
+    backgroundUrl: v.optional(v.string()),
+    backgroundColor: v.optional(v.string()),
+    // Layers embedded as an array so the whole composition saves atomically
+    // (debounced from the editor) and reloads in a single query.
+    layers: v.array(v.any()),
+    // Draft | Needs Review | Approved | Exported | Archived
+    status: v.string(),
+    createdBy: v.optional(v.string()),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_campaign", ["campaignId"]),
+
+  dhivehi_phrases: defineTable({
+    englishMeaning: v.string(),
+    dhivehiText: v.string(),
+    category: v.optional(v.string()),
+    industry: v.optional(v.string()),
+    tone: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    usageCount: v.optional(v.number()),
+    active: v.boolean(),
+  }).index("by_active", ["active"]),
+
+  dhivehi_exports: defineTable({
+    compositionId: v.id("dhivehi_compositions"),
+    outputType: v.string(), // png | jpeg | overlay
+    width: v.number(),
+    height: v.number(),
+    storageId: v.optional(v.string()),
+    url: v.optional(v.string()),
+    status: v.string(), // completed | failed
+    errorMessage: v.optional(v.string()),
+  }).index("by_composition", ["compositionId"]),
 });
