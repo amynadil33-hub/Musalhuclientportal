@@ -43,6 +43,17 @@ export const upsert = mutation({
     wordsToUse: v.optional(v.array(v.string())),
     wordsToAvoid: v.optional(v.array(v.string())),
     ctaStyle: v.optional(v.string()),
+    dvHeadlineFontId: v.optional(v.id("dhivehi_fonts")),
+    dvSubheadlineFontId: v.optional(v.id("dhivehi_fonts")),
+    dvBodyFontId: v.optional(v.id("dhivehi_fonts")),
+    dvPriceFontId: v.optional(v.id("dhivehi_fonts")),
+    dvCtaFontId: v.optional(v.id("dhivehi_fonts")),
+    enHeadlineFont: v.optional(v.string()),
+    enBodyFont: v.optional(v.string()),
+    minHeadlineSize: v.optional(v.number()),
+    minBodySize: v.optional(v.number()),
+    headlineLineHeight: v.optional(v.number()),
+    maxHeadlineLines: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
