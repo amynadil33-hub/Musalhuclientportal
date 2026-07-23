@@ -154,6 +154,14 @@ export const generateUploadUrl = mutation({
   },
 });
 
+export const resolveStorageUrl = mutation({
+  args: { storageId: v.string() },
+  handler: async (ctx, args) => {
+    requireAuth(await ctx.auth.getUserIdentity());
+    return await ctx.storage.getUrl(args.storageId as Id<"_storage">);
+  },
+});
+
 export const recordExport = mutation({
   args: {
     compositionId: v.id("dhivehi_compositions"),

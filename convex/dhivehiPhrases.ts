@@ -8,19 +8,39 @@ function requireAuth(identity: unknown) {
 }
 
 export const list = query({
-  args: { includeArchived: v.optional(v.boolean()) },
+  args: {
+    includeArchived: v.optional(v.boolean()),
+    search: v.optional(v.string()),
+    category: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     requireAuth(await ctx.auth.getUserIdentity());
     const active = await ctx.db
       .query("dhivehi_phrases")
       .withIndex("by_active", (q) => q.eq("active", true))
       .collect();
-    if (!args.includeArchived) return active;
-    const archived = await ctx.db
-      .query("dhivehi_phrases")
-      .withIndex("by_active", (q) => q.eq("active", false))
-      .collect();
-    return [...active, ...archived];
+    let rows = active;
+    if (args.includeArchived) {
+      const archived = await ctx.db
+        .query("dhivehi_phrases")
+        .withIndex("by_active", (q) => q.eq("active", false))
+        .collect();
+      rows = [...active, ...archived];
+    }
+    if (args.category) {
+      rows = rows.filter((p) => p.category === args.category);
+    }
+    if (args.search) {
+      const q = args.search.toLowerCase();
+      rows = rows.filter(
+        (p) =>
+          p.englishMeaning.toLowerCase().includes(q) ||
+          p.dhivehiText.includes(args.search!) ||
+          (p.category ?? "").toLowerCase().includes(q) ||
+          (p.industry ?? "").toLowerCase().includes(q),
+      );
+    }
+    return rows;
   },
 });
 

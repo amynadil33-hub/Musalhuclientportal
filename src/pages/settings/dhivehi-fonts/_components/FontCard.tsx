@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import type { Doc, Id } from "@/convex/_generated/dataModel.d.ts";
+import type { Doc } from "@/convex/_generated/dataModel.d.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { toast } from "sonner";
 import { loadFont } from "@/lib/dhivehi/fonts.ts";
@@ -209,5 +209,3 @@ export default function FontCard({ font }: { font: Doc<"dhivehi_fonts"> }) {
     </div>
   );
 }
-
-export type { Id };

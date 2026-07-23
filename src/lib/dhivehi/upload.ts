@@ -61,3 +61,47 @@ export async function uploadToConvex(
   const json = (await res.json()) as { storageId: string };
   return { storageId: json.storageId };
 }
+
+export function deriveFormat(name: string): string {
+  const ext = fileExtension(name);
+  return ALLOWED_FONT_EXT.includes(ext) ? ext : "woff2";
+}
+
+type GenerateUploadUrl = (args: Record<string, never>) => Promise<unknown>;
+
+// High-level: validate → get an upload URL → upload the font file.
+export async function uploadFontFile(
+  file: File,
+  generateUploadUrl: GenerateUploadUrl,
+): Promise<{ storageId: string }> {
+  const error = validateFontFile(file);
+  if (error) throw new Error(error);
+  const url = (await generateUploadUrl({})) as string;
+  return uploadToConvex(url, file);
+}
+
+type ResolveStorageUrl = (args: {
+  storageId: string;
+}) => Promise<string | null>;
+
+// High-level: validate → upload an image → resolve the persistent Convex URL
+// (falling back to a local object URL if resolution fails).
+export async function uploadImageFile(
+  file: File,
+  generateUploadUrl: GenerateUploadUrl,
+  resolveStorageUrl?: ResolveStorageUrl,
+): Promise<{ url: string; storageId: string }> {
+  const error = validateImageFile(file);
+  if (error) throw new Error(error);
+  const uploadUrl = (await generateUploadUrl({})) as string;
+  const { storageId } = await uploadToConvex(uploadUrl, file);
+  let url: string | null = null;
+  if (resolveStorageUrl) {
+    try {
+      url = await resolveStorageUrl({ storageId });
+    } catch {
+      url = null;
+    }
+  }
+  return { url: url ?? URL.createObjectURL(file), storageId };
+}
