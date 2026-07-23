@@ -67,6 +67,18 @@ export default defineSchema({
     wordsToUse: v.optional(v.array(v.string())),
     wordsToAvoid: v.optional(v.array(v.string())),
     ctaStyle: v.optional(v.string()),
+    // Optional Dhivehi/English typography defaults for the Dhivehi Composer
+    dvHeadlineFontId: v.optional(v.id("dhivehi_fonts")),
+    dvSubheadlineFontId: v.optional(v.id("dhivehi_fonts")),
+    dvBodyFontId: v.optional(v.id("dhivehi_fonts")),
+    dvPriceFontId: v.optional(v.id("dhivehi_fonts")),
+    dvCtaFontId: v.optional(v.id("dhivehi_fonts")),
+    enHeadlineFont: v.optional(v.string()),
+    enBodyFont: v.optional(v.string()),
+    minHeadlineSize: v.optional(v.number()),
+    minBodySize: v.optional(v.number()),
+    preferredHeadlineLineHeight: v.optional(v.number()),
+    maxHeadlineLines: v.optional(v.number()),
   }).index("by_client", ["clientId"]),
 
   target_audiences: defineTable({
@@ -268,4 +280,137 @@ export default defineSchema({
     key: v.string(),
     value: v.string(),
   }).index("by_key", ["key"]),
+
+  // ============ DHIVEHI AD COMPOSER ============
+
+  dhivehi_fonts: defineTable({
+    displayName: v.string(),
+    cssFamily: v.string(),
+    storageId: v.optional(v.string()),
+    fontUrl: v.optional(v.string()),
+    fileFormat: v.string(), // woff2 | woff | ttf | otf
+    fontWeight: v.optional(v.string()),
+    fontStyle: v.optional(v.string()), // normal | italic
+    isVariable: v.optional(v.boolean()),
+    minWeight: v.optional(v.number()),
+    maxWeight: v.optional(v.number()),
+    supportedUses: v.optional(v.array(v.string())),
+    licenceName: v.optional(v.string()),
+    licenceNotes: v.optional(v.string()),
+    commercialUseConfirmed: v.optional(v.boolean()),
+    // supported | partial | failed_to_load | glyphs_unavailable | unverified
+    glyphValidationStatus: v.string(),
+    active: v.boolean(),
+    isFallback: v.optional(v.boolean()),
+    createdBy: v.optional(v.string()),
+  }).index("by_active", ["active"]),
+
+  dhivehi_compositions: defineTable({
+    clientId: v.id("clients"),
+    campaignId: v.optional(v.id("campaigns")),
+    sourceGenerationId: v.optional(v.id("image_generations")),
+    title: v.string(),
+    canvasWidth: v.number(),
+    canvasHeight: v.number(),
+    outputFormat: v.string(),
+    backgroundStorageId: v.optional(v.string()),
+    backgroundUrl: v.optional(v.string()),
+    backgroundColor: v.optional(v.string()),
+    safeAreaPreset: v.optional(v.string()), // none | social | story_reel
+    status: v.string(), // Draft | Needs Review | Approved | Exported | Archived
+    version: v.optional(v.number()),
+    parentCompositionId: v.optional(v.id("dhivehi_compositions")),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_campaign", ["campaignId"])
+    .index("by_status", ["status"]),
+
+  dhivehi_layers: defineTable({
+    compositionId: v.id("dhivehi_compositions"),
+    layerType: v.string(),
+    language: v.optional(v.string()), // dv | en | neutral
+    text: v.optional(v.string()),
+    // image/logo layers
+    imageUrl: v.optional(v.string()),
+    imageStorageId: v.optional(v.string()),
+    // shape layers
+    shape: v.optional(v.string()), // rect | ellipse | line
+    fillColor: v.optional(v.string()),
+    // geometry
+    x: v.number(),
+    y: v.number(),
+    width: v.number(),
+    height: v.number(),
+    rotation: v.optional(v.number()),
+    // typography
+    fontId: v.optional(v.id("dhivehi_fonts")),
+    fontFamily: v.optional(v.string()),
+    fontSize: v.optional(v.number()),
+    fontWeight: v.optional(v.string()),
+    lineHeight: v.optional(v.number()),
+    letterSpacing: v.optional(v.number()),
+    textAlign: v.optional(v.string()),
+    direction: v.optional(v.string()), // rtl | ltr
+    autoFit: v.optional(v.boolean()),
+    maxLines: v.optional(v.number()),
+    // colours & effects
+    textColor: v.optional(v.string()),
+    backgroundColor: v.optional(v.string()),
+    backgroundOpacity: v.optional(v.number()),
+    padding: v.optional(v.number()),
+    borderRadius: v.optional(v.number()),
+    borderColor: v.optional(v.string()),
+    borderWidth: v.optional(v.number()),
+    textShadow: v.optional(v.boolean()),
+    strokeColor: v.optional(v.string()),
+    strokeWidth: v.optional(v.number()),
+    opacity: v.optional(v.number()),
+    zIndex: v.number(),
+    locked: v.optional(v.boolean()),
+    hidden: v.optional(v.boolean()),
+    reviewStatus: v.optional(v.string()),
+    // future reel animation fields (unused for now)
+    startTime: v.optional(v.number()),
+    endTime: v.optional(v.number()),
+  }).index("by_composition", ["compositionId"]),
+
+  dhivehi_phrases: defineTable({
+    englishMeaning: v.string(),
+    dhivehiText: v.string(),
+    category: v.string(),
+    industry: v.optional(v.string()),
+    tone: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    status: v.string(), // active | archived
+    usageCount: v.optional(v.number()),
+    createdBy: v.optional(v.string()),
+  })
+    .index("by_status", ["status"])
+    .index("by_category", ["category"]),
+
+  dhivehi_copy_versions: defineTable({
+    compositionId: v.id("dhivehi_compositions"),
+    layerId: v.optional(v.id("dhivehi_layers")),
+    englishSource: v.optional(v.string()),
+    aiDraft: v.optional(v.string()),
+    editedText: v.optional(v.string()),
+    approvedText: v.optional(v.string()),
+    reviewStatus: v.string(), // AI Draft | Needs Review | Reviewed | Approved | Locked
+    reviewerName: v.optional(v.string()),
+    reviewedAt: v.optional(v.number()),
+  })
+    .index("by_composition", ["compositionId"])
+    .index("by_layer", ["layerId"]),
+
+  dhivehi_exports: defineTable({
+    compositionId: v.id("dhivehi_compositions"),
+    outputType: v.string(), // png | jpeg | reel_overlay
+    width: v.number(),
+    height: v.number(),
+    storageId: v.optional(v.string()),
+    url: v.optional(v.string()),
+    status: v.string(), // pending | completed | failed
+    errorMessage: v.optional(v.string()),
+    createdBy: v.optional(v.string()),
+  }).index("by_composition", ["compositionId"]),
 });

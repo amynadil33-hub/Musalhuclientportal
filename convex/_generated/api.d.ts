@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as ai_dhivehiCopy from "../ai/dhivehiCopy.js";
 import type * as ai_imageGeneration from "../ai/imageGeneration.js";
 import type * as ai_kling from "../ai/kling.js";
 import type * as ai_providerHealth from "../ai/providerHealth.js";
@@ -17,6 +18,10 @@ import type * as brandAssets from "../brandAssets.js";
 import type * as brandProfiles from "../brandProfiles.js";
 import type * as campaigns from "../campaigns.js";
 import type * as clients from "../clients.js";
+import type * as dhivehiCompositions from "../dhivehiCompositions.js";
+import type * as dhivehiExports from "../dhivehiExports.js";
+import type * as dhivehiFonts from "../dhivehiFonts.js";
+import type * as dhivehiPhrases from "../dhivehiPhrases.js";
 import type * as http from "../http.js";
 import type * as imageGenerations from "../imageGenerations.js";
 import type * as products from "../products.js";
@@ -33,6 +38,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "ai/dhivehiCopy": typeof ai_dhivehiCopy;
   "ai/imageGeneration": typeof ai_imageGeneration;
   "ai/kling": typeof ai_kling;
   "ai/providerHealth": typeof ai_providerHealth;
@@ -42,6 +48,10 @@ declare const fullApi: ApiFromModules<{
   brandProfiles: typeof brandProfiles;
   campaigns: typeof campaigns;
   clients: typeof clients;
+  dhivehiCompositions: typeof dhivehiCompositions;
+  dhivehiExports: typeof dhivehiExports;
+  dhivehiFonts: typeof dhivehiFonts;
+  dhivehiPhrases: typeof dhivehiPhrases;
   http: typeof http;
   imageGenerations: typeof imageGenerations;
   products: typeof products;
