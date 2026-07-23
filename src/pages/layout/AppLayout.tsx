@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Menu,
   X,
+  Type,
+  Languages,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils.ts";
@@ -25,6 +27,8 @@ const navItems = [
   { to: "/campaigns", icon: Megaphone, label: "Campaigns" },
   { to: "/image-studio", icon: ImageIcon, label: "Image Studio" },
   { to: "/reel-studio", icon: Film, label: "Reel Studio" },
+  { to: "/composer", icon: Type, label: "Dhivehi Composer" },
+  { to: "/dhivehi-phrases", icon: Languages, label: "Dhivehi Phrases" },
   { to: "/library", icon: Library, label: "Library" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];

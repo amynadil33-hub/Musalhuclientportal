@@ -1,6 +1,9 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
+import type { Doc } from "@/convex/_generated/dataModel.d.ts";
 import type { Layer } from "@/lib/dhivehi/types.ts";
+
+type FontDoc = Doc<"dhivehi_fonts">;
 import { isTextLayer, isShapeLayer } from "@/lib/dhivehi/types.ts";
 import { STYLE_PRESETS } from "@/lib/dhivehi/presets.ts";
 import { loadFont } from "@/lib/dhivehi/fonts.ts";
@@ -96,7 +99,7 @@ export default function PropertiesPanel({
   layer: Layer | null;
   onUpdate: (id: string, patch: Partial<Layer>) => void;
 }) {
-  const fonts = useQuery(api.dhivehiFonts.listActive, {});
+  const fonts = useQuery(api.dhivehiFonts.list, {});
 
   if (!layer) {
     return (
@@ -180,7 +183,9 @@ export default function PropertiesPanel({
                 <Select
                   value={layer.fontId ?? ""}
                   onValueChange={async (fontId) => {
-                    const f = fonts?.find((x) => x._id === fontId);
+                    const f = fonts?.find(
+                      (x: FontDoc) => x._id === fontId,
+                    );
                     if (!f) return;
                     if (f.fontUrl)
                       await loadFont({
@@ -194,7 +199,7 @@ export default function PropertiesPanel({
                     <SelectValue placeholder="Select a font" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(fonts ?? []).map((f) => (
+                    {((fonts ?? []) as FontDoc[]).map((f) => (
                       <SelectItem key={f._id} value={f._id}>
                         {f.displayName}
                       </SelectItem>

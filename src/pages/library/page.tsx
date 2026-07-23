@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { api } from "@/convex/_generated/api.js";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { Library, Search, ImageIcon, Download, Anchor, Filter } from "lucide-react";
+import { Library, Search, ImageIcon, Download, Type } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { format } from "date-fns";
+import { OUTPUT_FORMATS } from "@/lib/dhivehi/formats.ts";
 
 export default function GeneratedLibraryPage() {
   const clients = useQuery(api.clients.list, {});
@@ -19,6 +22,37 @@ export default function GeneratedLibraryPage() {
     api.imageGenerations.listByClient,
     selectedClient ? { clientId: selectedClient as Id<"clients"> } : "skip",
   );
+
+  const navigate = useNavigate();
+  const createComposition = useMutation(api.dhivehiCompositions.create);
+  const [opening, setOpening] = useState<string | null>(null);
+
+  const handleOpenInComposer = async (
+    url: string,
+    gen: { _id: Id<"image_generations">; clientId: Id<"clients">; shortPrompt: string },
+  ) => {
+    setOpening(url);
+    try {
+      // Default to a square canvas; the composer lets the user change format.
+      const format = OUTPUT_FORMATS.find((f) => f.id === "ig_square")!;
+      const id = await createComposition({
+        clientId: gen.clientId,
+        sourceGenerationId: gen._id,
+        title: gen.shortPrompt.slice(0, 60) || "Dhivehi ad",
+        canvasWidth: format.width,
+        canvasHeight: format.height,
+        outputFormat: format.id,
+        backgroundUrl: url,
+        layers: [],
+      });
+      toast.success("Opening in Dhivehi Composer");
+      navigate(`/composer/${id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to open");
+    } finally {
+      setOpening(null);
+    }
+  };
 
   const handleDownload = async (url: string) => {
     const a = document.createElement("a");
@@ -140,6 +174,15 @@ export default function GeneratedLibraryPage() {
                       onClick={() => handleDownload(item.url)}
                     >
                       <Download size={10} className="mr-1" /> Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="text-[10px] h-6 px-2"
+                      disabled={opening === item.url}
+                      onClick={() => handleOpenInComposer(item.url, item.gen)}
+                    >
+                      <Type size={10} className="mr-1" />
+                      {opening === item.url ? "…" : "Composer"}
                     </Button>
                     <span className="text-[9px] text-white/60 ml-auto self-center">
                       {format(item.createdAt, "d MMM")}

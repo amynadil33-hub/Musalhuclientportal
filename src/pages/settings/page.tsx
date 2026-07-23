@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
@@ -13,6 +14,7 @@ import {
   RefreshCw,
   Save,
   XCircle,
+  Type,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -172,6 +174,23 @@ export default function SettingsPage() {
         )}
         </div>
       )}
+
+      {/* Dhivehi Typography */}
+      <div className="bg-card border border-border rounded-lg p-5 flex items-start gap-3">
+        <Type size={18} className="text-primary mt-0.5 shrink-0" />
+        <div className="flex-1">
+          <h2 className="text-sm font-heading font-semibold text-foreground">
+            Dhivehi Typography
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Manage licensed Thaana fonts available in the Dhivehi Ad Composer,
+            validate glyph coverage, and record commercial-use permissions.
+          </p>
+        </div>
+        <Button asChild size="sm" variant="secondary">
+          <Link to="/settings/dhivehi-fonts">Manage Fonts</Link>
+        </Button>
+      </div>
 
       {/* API Keys Notice */}
       <div className="bg-card border border-primary/20 rounded-lg p-5 space-y-3">

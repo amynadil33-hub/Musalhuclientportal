@@ -55,7 +55,7 @@ export default function ComposerEditorPage() {
   const id = compositionId as Id<"dhivehi_compositions">;
 
   const data = useQuery(api.dhivehiCompositions.get, { compositionId: id });
-  const activeFonts = useQuery(api.dhivehiFonts.listActive, {});
+  const activeFonts = useQuery(api.dhivehiFonts.list, {});
   const save = useMutation(api.dhivehiCompositions.save);
   const generateUploadUrl = useMutation(
     api.dhivehiCompositions.generateUploadUrl,
