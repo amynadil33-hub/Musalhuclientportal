@@ -303,3 +303,13 @@ export const resolveStorageUrl = query({
     return await ctx.storage.getUrl(args.storageId);
   },
 });
+
+// Mutation variant so the editor can resolve a URL imperatively right after
+// uploading a file.
+export const getImageUrl = mutation({
+  args: { storageId: v.string() },
+  handler: async (ctx, args) => {
+    await requireUser(ctx);
+    return await ctx.storage.getUrl(args.storageId);
+  },
+});
