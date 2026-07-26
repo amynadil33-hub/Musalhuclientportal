@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import type { Doc } from "@/convex/_generated/dataModel.d.ts";
@@ -5,6 +6,7 @@ import type { Layer } from "@/lib/dhivehi/types.ts";
 
 type FontDoc = Doc<"dhivehi_fonts">;
 import { isTextLayer, isShapeLayer } from "@/lib/dhivehi/types.ts";
+import FontUploadDialog from "@/pages/settings/dhivehi-fonts/_components/FontUploadDialog.tsx";
 import { STYLE_PRESETS } from "@/lib/dhivehi/presets.ts";
 import { loadFont } from "@/lib/dhivehi/fonts.ts";
 import { Label } from "@/components/ui/label.tsx";
@@ -23,6 +25,7 @@ import {
   AlignCenter,
   AlignRight,
   SlidersHorizontal,
+  UploadCloud,
 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 
@@ -100,6 +103,7 @@ export default function PropertiesPanel({
   onUpdate: (id: string, patch: Partial<Layer>) => void;
 }) {
   const fonts = useQuery(api.dhivehiFonts.list, {});
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   if (!layer) {
     return (
@@ -206,11 +210,18 @@ export default function PropertiesPanel({
                     ))}
                     {fonts && fonts.length === 0 && (
                       <div className="px-2 py-1.5 text-[11px] text-muted-foreground">
-                        No active fonts. Upload one in Settings.
+                        No active fonts yet — upload one below.
                       </div>
                     )}
                   </SelectContent>
                 </Select>
+                <button
+                  type="button"
+                  onClick={() => setUploadOpen(true)}
+                  className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-primary hover:underline"
+                >
+                  <UploadCloud size={12} /> Upload a Thaana font
+                </button>
               </Row>
             ) : (
               <Row label="Font family">
@@ -389,6 +400,8 @@ export default function PropertiesPanel({
           </>
         )}
       </div>
+
+      <FontUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
     </div>
   );
 }
