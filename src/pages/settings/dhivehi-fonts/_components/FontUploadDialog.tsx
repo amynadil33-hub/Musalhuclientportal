@@ -115,7 +115,7 @@ export default function FontUploadDialog({
         // Non-fatal — card will offer a manual re-check.
       }
 
-      toast.success("Font uploaded");
+      toast.success("Font uploaded. Review and activate it in Font Manager.");
       reset();
       onOpenChange(false);
     } catch (e) {

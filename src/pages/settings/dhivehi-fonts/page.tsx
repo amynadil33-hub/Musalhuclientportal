@@ -9,7 +9,9 @@ import FontUploadDialog from "./_components/FontUploadDialog.tsx";
 import { Plus, ArrowLeft, Type, Info } from "lucide-react";
 
 export default function DhivehiFontsPage() {
-  const fonts = useQuery(api.dhivehiFonts.list, {});
+  // The manager must include inactive fonts so newly uploaded fonts remain
+  // visible and can be reviewed, validated, and activated.
+  const fonts = useQuery(api.dhivehiFonts.list, { includeInactive: true });
   const [uploadOpen, setUploadOpen] = useState(false);
 
   return (
