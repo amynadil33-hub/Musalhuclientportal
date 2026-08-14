@@ -27,6 +27,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 import { cn } from "@/lib/utils.ts";
+import { ReferencePicker } from "@/components/references/ReferencePicker.tsx";
+import type { SelectedReferenceImage } from "@/lib/reference-images.ts";
 
 const FORMATS = [
   { id: "1024x1024", label: "Square 1:1", ratio: "aspect-square" },
@@ -71,7 +73,7 @@ export default function ImageStudioPage() {
     preselectedCampaign ?? "",
   );
   const [selectedProduct, setSelectedProduct] = useState<string>("");
-  const [selectedAnchors, setSelectedAnchors] = useState<string[]>([]);
+  const [referenceImages, setReferenceImages] = useState<SelectedReferenceImage[]>([]);
   const [platform, setPlatform] = useState("Instagram Portrait 4:5");
   const [format, setFormat] = useState("1024x1536");
   const [quality, setQuality] = useState("standard");
@@ -82,6 +84,8 @@ export default function ImageStudioPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showAnchorDialog, setShowAnchorDialog] = useState(false);
   const [anchorType, setAnchorType] = useState("primary");
+  const [currentGenerationId, setCurrentGenerationId] = useState<Id<"image_generations"> | null>(null);
+  const [approved, setApproved] = useState(false);
 
   const campaigns = useQuery(
     api.campaigns.listByClient,
@@ -90,12 +94,6 @@ export default function ImageStudioPage() {
   const products = useQuery(
     api.products.listByClient,
     selectedClient ? { clientId: selectedClient as Id<"clients"> } : "skip",
-  );
-  const anchors = useQuery(
-    api.campaigns.getAnchors,
-    selectedCampaign
-      ? { campaignId: selectedCampaign as Id<"campaigns"> }
-      : "skip",
   );
   const brandProfile = useQuery(
     api.brandProfiles.getByClient,
@@ -124,6 +122,7 @@ export default function ImageStudioPage() {
   const updateResult = useMutation(api.imageGenerations.updateResult);
   const addAnchor = useMutation(api.campaigns.addAnchor);
   const markAsAnchor = useMutation(api.imageGenerations.markAsAnchor);
+  const setApproval = useMutation(api.imageGenerations.setApproval);
   const recordUsage = useMutation(api.settings.record);
 
   // Auto-select first client if only one
@@ -131,7 +130,7 @@ export default function ImageStudioPage() {
     if (clients?.length === 1 && !selectedClient) {
       setSelectedClient(clients[0]._id);
     }
-  }, [clients]);
+  }, [clients, selectedClient]);
 
   const handleGenerate = async () => {
     if (!selectedClient || !prompt.trim()) {
@@ -140,6 +139,8 @@ export default function ImageStudioPage() {
     }
     setGenerating(true);
     setGeneratedImages([]);
+    setCurrentGenerationId(null);
+    setApproved(false);
 
     let generationId: Id<"image_generations"> | null = null;
     try {
@@ -179,6 +180,7 @@ export default function ImageStudioPage() {
         platform: `${platform} (${format})`,
         staffInstruction: prompt,
         avoidList: avoidContext || undefined,
+        referenceImages,
       });
 
       // Create generation record
@@ -196,6 +198,7 @@ export default function ImageStudioPage() {
         format,
         quality,
         provider: "openai",
+        referenceImages,
       });
 
       // Generate
@@ -204,10 +207,12 @@ export default function ImageStudioPage() {
         n: numImages,
         quality: quality === "hd" ? "hd" : "standard",
         size: format,
+        referenceImages,
       });
 
       setGeneratedImages(urls);
       setSelectedImage(urls[0] ?? null);
+      setCurrentGenerationId(generationId);
 
       await updateResult({
         generationId,
@@ -251,7 +256,15 @@ export default function ImageStudioPage() {
         imageUrl: selectedImage,
         anchorType,
         name: `${anchorType} anchor`,
+        generationId: currentGenerationId ?? undefined,
       });
+      if (currentGenerationId) {
+        await markAsAnchor({
+          generationId: currentGenerationId,
+          anchorType,
+          isAnchor: true,
+        });
+      }
       toast.success("Marked as campaign anchor");
       setShowAnchorDialog(false);
     } catch {
@@ -291,6 +304,7 @@ export default function ImageStudioPage() {
                 setSelectedClient(e.target.value);
                 setSelectedCampaign("");
                 setSelectedProduct("");
+                setReferenceImages([]);
               }}
               className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
             >
@@ -308,7 +322,10 @@ export default function ImageStudioPage() {
             <Label>Campaign</Label>
             <select
               value={selectedCampaign}
-              onChange={(e) => setSelectedCampaign(e.target.value)}
+              onChange={(e) => {
+                setSelectedCampaign(e.target.value);
+                setReferenceImages([]);
+              }}
               className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
               disabled={!selectedClient}
             >
@@ -346,43 +363,12 @@ export default function ImageStudioPage() {
             </select>
           </div>
 
-          {/* Anchors */}
-          {selectedCampaign && anchors && anchors.length > 0 && (
-            <div className="space-y-2">
-              <Label>Campaign Anchors (reference images)</Label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {anchors.map((anchor) => (
-                  <button
-                    key={anchor._id}
-                    onClick={() =>
-                      setSelectedAnchors((prev) =>
-                        prev.includes(anchor._id)
-                          ? prev.filter((a) => a !== anchor._id)
-                          : [...prev, anchor._id],
-                      )
-                    }
-                    className={cn(
-                      "aspect-square rounded overflow-hidden border-2 transition-all",
-                      selectedAnchors.includes(anchor._id)
-                        ? "border-primary"
-                        : "border-border",
-                    )}
-                  >
-                    <img
-                      src={anchor.imageUrl}
-                      alt="Anchor"
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-              {selectedAnchors.length > 0 && (
-                <p className="text-[10px] text-primary/80">
-                  {selectedAnchors.length} anchor(s) selected
-                </p>
-              )}
-            </div>
-          )}
+          {selectedClient && <ReferencePicker
+            clientId={selectedClient as Id<"clients">}
+            campaignId={selectedCampaign ? selectedCampaign as Id<"campaigns"> : undefined}
+            value={referenceImages}
+            onChange={setReferenceImages}
+          />}
 
           {/* Format */}
           <div className="space-y-2">
@@ -586,6 +572,20 @@ export default function ImageStudioPage() {
                     className="gap-2"
                   >
                     <Anchor size={13} /> Mark as Campaign Anchor
+                  </Button>
+                )}
+                {currentGenerationId && (
+                  <Button
+                    size="sm"
+                    variant={approved ? "secondary" : "default"}
+                    onClick={async () => {
+                      await setApproval({ generationId: currentGenerationId, approved: !approved });
+                      setApproved(!approved);
+                      toast.success(approved ? "Approval removed" : "Image approved and added to reference library");
+                    }}
+                    className="gap-2"
+                  >
+                    <Check size={13} /> {approved ? "Approved" : "Mark Approved"}
                   </Button>
                 )}
                 <Button

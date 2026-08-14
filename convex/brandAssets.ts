@@ -44,6 +44,23 @@ export const create = mutation({
   },
 });
 
+export const createUploaded = mutation({
+  args: {
+    clientId: v.id("clients"),
+    assetType: v.string(),
+    storageId: v.string(),
+    name: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError({ message: "Unauthenticated", code: "UNAUTHENTICATED" });
+    const url = await ctx.storage.getUrl(args.storageId);
+    if (!url) throw new ConvexError({ message: "Uploaded image could not be resolved", code: "STORAGE_URL_MISSING" });
+    return ctx.db.insert("brand_assets", { ...args, url });
+  },
+});
+
 export const remove = mutation({
   args: { assetId: v.id("brand_assets") },
   handler: async (ctx, args) => {

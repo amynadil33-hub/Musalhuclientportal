@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
+import { selectedReferenceImage } from "./referenceImageValues";
 
 export const listByClient = query({
   args: { clientId: v.id("clients") },
@@ -30,6 +31,7 @@ export const create = mutation({
     name: v.string(),
     objective: v.optional(v.string()),
     format: v.optional(v.string()),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -45,6 +47,7 @@ export const update = mutation({
     objective: v.optional(v.string()),
     status: v.optional(v.string()),
     format: v.optional(v.string()),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -78,6 +81,7 @@ export const addScene = mutation({
     onScreenText: v.optional(v.string()),
     transition: v.optional(v.string()),
     videoProvider: v.optional(v.string()),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -104,6 +108,7 @@ export const updateScene = mutation({
     generationStatus: v.optional(v.string()),
     generatedClipUrl: v.optional(v.string()),
     videoJobId: v.optional(v.id("video_jobs")),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();

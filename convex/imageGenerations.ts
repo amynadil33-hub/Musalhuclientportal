@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
+import { selectedReferenceImage } from "./referenceImageValues";
 
 export const listByClient = query({
   args: { clientId: v.id("clients"), paginationOpts: v.optional(v.object({ numItems: v.number(), cursor: v.union(v.string(), v.null()) })) },
@@ -51,6 +52,7 @@ export const create = mutation({
     format: v.optional(v.string()),
     quality: v.optional(v.string()),
     provider: v.optional(v.string()),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -90,6 +92,20 @@ export const markAsAnchor = mutation({
     await ctx.db.patch(args.generationId, {
       isAnchor: args.isAnchor,
       anchorType: args.anchorType,
+    });
+  },
+});
+
+export const setApproval = mutation({
+  args: {
+    generationId: v.id("image_generations"),
+    approved: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError({ message: "Unauthenticated", code: "UNAUTHENTICATED" });
+    await ctx.db.patch(args.generationId, {
+      approvalStatus: args.approved ? "approved" : "draft",
     });
   },
 });

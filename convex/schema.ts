@@ -1,6 +1,7 @@
 import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { selectedReferenceImage } from "./referenceImageValues";
 
 export default defineSchema({
   ...authTables,
@@ -183,6 +184,8 @@ export default defineSchema({
     isAnchor: v.optional(v.boolean()),
     estimatedCost: v.optional(v.number()),
     anchorType: v.optional(v.string()),
+    approvalStatus: v.optional(v.string()),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   })
     .index("by_client", ["clientId"])
     .index("by_campaign", ["campaignId"]),
@@ -194,6 +197,7 @@ export default defineSchema({
     objective: v.optional(v.string()),
     status: v.string(), // draft | in_progress | completed
     format: v.optional(v.string()), // 9:16 | 1:1 | 16:9
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   })
     .index("by_client", ["clientId"])
     .index("by_campaign", ["campaignId"]),
@@ -212,6 +216,7 @@ export default defineSchema({
     generationStatus: v.optional(v.string()),
     generatedClipUrl: v.optional(v.string()),
     videoJobId: v.optional(v.id("video_jobs")),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   }).index("by_reel_project", ["reelProjectId"]),
 
   video_jobs: defineTable({
@@ -227,8 +232,19 @@ export default defineSchema({
     storageId: v.optional(v.string()),
     errorMessage: v.optional(v.string()),
     estimatedCost: v.optional(v.number()),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   })
     .index("by_status", ["status"])
+    .index("by_client", ["clientId"]),
+
+  reference_image_sets: defineTable({
+    clientId: v.id("clients"),
+    campaignId: v.id("campaigns"),
+    title: v.string(),
+    notes: v.optional(v.string()),
+    referenceImages: v.array(selectedReferenceImage),
+  })
+    .index("by_campaign", ["campaignId"])
     .index("by_client", ["clientId"]),
 
   creative_exports: defineTable({

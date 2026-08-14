@@ -29,6 +29,22 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
+import { ReferencePicker } from "@/components/references/ReferencePicker.tsx";
+import {
+  normalizeReferences,
+  type SelectedReferenceImage,
+} from "@/lib/reference-images.ts";
+
+const VIDEO_REFERENCE_ROLES = [
+  "campaignAnchor",
+  "sceneReference",
+  "frameReference",
+  "product",
+  "environment",
+  "character",
+  "style",
+  "approvedAd",
+] as const;
 
 const MOTION_PRESETS = [
   "Slow cinematic push-in",
@@ -311,14 +327,11 @@ function ReelStoryboard({
   const scenes = useQuery(api.reels.getScenes, { reelProjectId });
   const addScene = useMutation(api.reels.addScene);
   const updateScene = useMutation(api.reels.updateScene);
+  const updateReel = useMutation(api.reels.update);
   const deleteScene = useMutation(api.reels.deleteScene);
   const createVideoJob = useMutation(api.videoJobs.create);
   const updateVideoJob = useMutation(api.videoJobs.update);
   const generateKlingVideo = useAction(api.ai.kling.generateVideo);
-
-  const imageGenerations = useQuery(api.imageGenerations.listByClient, {
-    clientId,
-  });
 
   const [showAddScene, setShowAddScene] = useState(false);
   const [generatingScene, setGeneratingScene] =
@@ -332,6 +345,7 @@ function ReelStoryboard({
     transition: "Fade",
     videoProvider: "Auto",
     referenceImageUrl: "",
+    referenceImages: [] as SelectedReferenceImage[],
   });
 
   const handleAddScene = async () => {
@@ -341,7 +355,11 @@ function ReelStoryboard({
       sceneNumber,
       ...sceneForm,
       duration: sceneForm.duration,
-      referenceImageUrl: sceneForm.referenceImageUrl || undefined,
+      referenceImageUrl:
+        sceneForm.referenceImages.find((reference) => reference.isPrimary)?.url ??
+        sceneForm.referenceImages[0]?.url ??
+        (sceneForm.referenceImageUrl || undefined),
+      referenceImages: normalizeReferences(sceneForm.referenceImages),
     });
     setShowAddScene(false);
     setSceneForm({
@@ -353,15 +371,28 @@ function ReelStoryboard({
       transition: "Fade",
       videoProvider: "Auto",
       referenceImageUrl: "",
+      referenceImages: [],
     });
     toast.success("Scene added");
   };
 
   const handleGenerateScene = async (scene: Doc<"reel_scenes">) => {
-    if (!scene.referenceImageUrl) {
+    const sceneReferences = (scene.referenceImages ?? []) as SelectedReferenceImage[];
+    const projectReferences = (reel?.referenceImages ?? []) as SelectedReferenceImage[];
+    const primaryReference =
+      sceneReferences.find((reference) => reference.isPrimary) ??
+      sceneReferences[0] ??
+      projectReferences.find((reference) => reference.isPrimary) ??
+      projectReferences[0];
+    const imageUrl = primaryReference?.url ?? scene.referenceImageUrl;
+    if (!imageUrl) {
       toast.error("Add a reference image before generating video");
       return;
     }
+    const references = normalizeReferences([
+      ...sceneReferences,
+      ...projectReferences.map((reference) => ({ ...reference, isPrimary: false })),
+    ].slice(0, 8));
 
     setGeneratingScene(scene._id);
     let jobId: Id<"video_jobs"> | null = null;
@@ -370,8 +401,9 @@ function ReelStoryboard({
         reelSceneId: scene._id,
         clientId,
         provider: "kling",
-        inputImageUrl: scene.referenceImageUrl,
+        inputImageUrl: imageUrl,
         motionPrompt: scene.motionPrompt,
+        referenceImages: references,
       });
       await updateScene({
         sceneId: scene._id,
@@ -379,11 +411,13 @@ function ReelStoryboard({
         videoJobId: jobId,
       });
       const result = await generateKlingVideo({
-        imageUrl: scene.referenceImageUrl,
+        imageUrl,
         prompt: [scene.description, scene.motionPrompt, scene.cameraMovement]
           .filter(Boolean)
           .join(". "),
         duration: scene.duration ?? 5,
+        motionDirection: scene.cameraMovement,
+        referenceImages: references,
       });
       await updateVideoJob({
         jobId,
@@ -446,6 +480,21 @@ function ReelStoryboard({
         </Button>
       </div>
 
+      <div className="rounded-lg border border-border bg-card p-4">
+        <ReferencePicker
+          clientId={clientId}
+          campaignId={reel.campaignId}
+          value={(reel.referenceImages ?? []) as SelectedReferenceImage[]}
+          onChange={(referenceImages) => {
+            void updateReel({ reelProjectId, referenceImages }).catch(() =>
+              toast.error("Could not save reel references"),
+            );
+          }}
+          roles={VIDEO_REFERENCE_ROLES}
+          title="Reel Project References"
+        />
+      </div>
+
       {/* Scenes */}
       {sortedScenes.length === 0 ? (
         <div className="border-2 border-dashed border-border rounded-lg p-10 text-center">
@@ -475,14 +524,18 @@ function ReelStoryboard({
                     {scene.sceneNumber}
                   </div>
 
-                  {/* Reference image */}
-                  <div className="shrink-0">
-                    {scene.referenceImageUrl ? (
-                      <img
-                        src={scene.referenceImageUrl}
-                        alt="Reference"
-                        className="w-16 h-16 object-cover rounded border border-border"
-                      />
+                  {/* Reference images */}
+                  <div className="shrink-0 flex -space-x-2">
+                    {(scene.referenceImages?.length ?? 0) > 0 ? (
+                      scene.referenceImages!.slice(0, 3).map((reference, referenceIndex) => <img
+                        key={`${reference.url}:${referenceIndex}`}
+                        src={reference.url}
+                        alt={reference.label ?? reference.role}
+                        title={`${reference.role} · ${reference.strength}`}
+                        className="w-14 h-14 object-cover rounded border-2 border-card"
+                      />)
+                    ) : scene.referenceImageUrl ? (
+                      <img src={scene.referenceImageUrl} alt="Reference" className="w-16 h-16 object-cover rounded border border-border" />
                     ) : (
                       <div className="w-16 h-16 rounded border border-dashed border-border flex items-center justify-center bg-muted">
                         <ImageIcon
@@ -514,6 +567,11 @@ function ReelStoryboard({
                     {scene.motionPrompt && (
                       <p className="text-xs text-muted-foreground/60 line-clamp-1">
                         {scene.motionPrompt}
+                      </p>
+                    )}
+                    {scene.referenceImages && scene.referenceImages.length > 0 && (
+                      <p className="text-[10px] text-primary/80">
+                        {scene.referenceImages.map((reference) => reference.role).join(" · ")}
                       </p>
                     )}
                     {scene.onScreenText && (
@@ -551,7 +609,7 @@ function ReelStoryboard({
                       size="sm"
                       variant="secondary"
                       disabled={
-                        !scene.referenceImageUrl ||
+                        (!scene.referenceImageUrl && !scene.referenceImages?.some((reference) => reference.url) && !reel.referenceImages?.some((reference) => reference.url)) ||
                         generatingScene === scene._id
                       }
                       onClick={() => handleGenerateScene(scene)}
@@ -574,6 +632,25 @@ function ReelStoryboard({
                       <Trash2 size={13} />
                     </Button>
                   </div>
+                </div>
+
+                <div className="border-t border-border px-4 py-3">
+                  <ReferencePicker
+                    clientId={clientId}
+                    campaignId={reel.campaignId}
+                    value={(scene.referenceImages ?? []) as SelectedReferenceImage[]}
+                    onChange={(referenceImages) => {
+                      const primary = referenceImages.find((reference) => reference.isPrimary) ?? referenceImages[0];
+                      void updateScene({
+                        sceneId: scene._id,
+                        referenceImages,
+                        referenceImageUrl: primary?.url,
+                      }).catch(() => toast.error("Could not save scene references"));
+                    }}
+                    roles={VIDEO_REFERENCE_ROLES}
+                    title="Scene References"
+                    compact
+                  />
                 </div>
 
                 {/* Generated clip preview */}
@@ -624,44 +701,14 @@ function ReelStoryboard({
               />
             </div>
 
-            {/* Reference image from past generations */}
-            <div className="space-y-2">
-              <Label>Reference Image (from generated images)</Label>
-              {imageGenerations && imageGenerations.length > 0 ? (
-                <div className="grid grid-cols-5 gap-1.5 max-h-32 overflow-y-auto">
-                  {imageGenerations
-                    .flatMap((g) => g.imageUrls ?? [])
-                    .slice(0, 20)
-                    .map((url, i) => (
-                      <button
-                        key={i}
-                        onClick={() =>
-                          setSceneForm((f) => ({
-                            ...f,
-                            referenceImageUrl: url,
-                          }))
-                        }
-                        className={cn(
-                          "aspect-square rounded overflow-hidden border-2 transition-all",
-                          sceneForm.referenceImageUrl === url
-                            ? "border-primary"
-                            : "border-border",
-                        )}
-                      >
-                        <img
-                          src={url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Generate images in Image Studio first
-                </p>
-              )}
-            </div>
+            <ReferencePicker
+              clientId={clientId}
+              campaignId={reel.campaignId}
+              value={sceneForm.referenceImages}
+              onChange={(referenceImages) => setSceneForm((form) => ({ ...form, referenceImages }))}
+              roles={VIDEO_REFERENCE_ROLES}
+              title="Scene References"
+            />
 
             <div className="space-y-2">
               <Label>Motion Prompt</Label>

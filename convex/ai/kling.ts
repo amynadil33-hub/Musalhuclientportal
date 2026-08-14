@@ -4,6 +4,11 @@ import { action, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { ConvexError, v } from "convex/values";
+import {
+  composeReferenceInstructions,
+  selectedReferenceImage,
+  type ReferenceValue,
+} from "../referenceImageValues";
 
 type KlingTask = {
   task_id?: string;
@@ -134,6 +139,8 @@ export const generateVideo = action({
     imageUrl: v.string(),
     prompt: v.string(),
     duration: v.number(),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
+    motionDirection: v.optional(v.string()),
   },
   handler: async (
     ctx,
@@ -146,12 +153,21 @@ export const generateVideo = action({
     await requireUser(ctx);
     const { model } = getConfig();
     const duration = args.duration <= 5 ? "5" : "10";
+    const references = [...(args.referenceImages ?? [])].sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
+    const primary = references.find((reference) => reference.isPrimary) ?? references[0];
+    const imageUrl = primary?.url ?? args.imageUrl;
+    const referenceGuidance = composeReferenceInstructions(references as ReferenceValue[]);
+    const prompt = [args.prompt, args.motionDirection, referenceGuidance]
+      .filter(Boolean)
+      .join("\n");
     const created = await klingRequest("/v1/videos/image2video", {
       method: "POST",
       body: JSON.stringify({
         model_name: model,
-        image: args.imageUrl,
-        prompt: args.prompt,
+        image: imageUrl,
+        prompt,
         mode: "std",
         duration,
       }),

@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
+import { selectedReferenceImage } from "./referenceImageValues";
 
 export const create = mutation({
   args: {
@@ -10,6 +11,7 @@ export const create = mutation({
     provider: v.string(),
     inputImageUrl: v.optional(v.string()),
     motionPrompt: v.optional(v.string()),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();

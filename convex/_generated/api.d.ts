@@ -24,6 +24,8 @@ import type * as http from "../http.js";
 import type * as imageGenerations from "../imageGenerations.js";
 import type * as products from "../products.js";
 import type * as reels from "../reels.js";
+import type * as referenceImageValues from "../referenceImageValues.js";
+import type * as referenceImages from "../referenceImages.js";
 import type * as settings from "../settings.js";
 import type * as targetAudiences from "../targetAudiences.js";
 import type * as users from "../users.js";
@@ -52,6 +54,8 @@ declare const fullApi: ApiFromModules<{
   imageGenerations: typeof imageGenerations;
   products: typeof products;
   reels: typeof reels;
+  referenceImageValues: typeof referenceImageValues;
+  referenceImages: typeof referenceImages;
   settings: typeof settings;
   targetAudiences: typeof targetAudiences;
   users: typeof users;

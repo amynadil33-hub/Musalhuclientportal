@@ -6,6 +6,11 @@ import type { Id } from "../_generated/dataModel";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 import OpenAI from "openai";
+import {
+  composeReferenceInstructions,
+  selectedReferenceImage,
+  type ReferenceValue,
+} from "../referenceImageValues";
 
 function getOpenAI() {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -66,19 +71,48 @@ export const generateImages = action({
     n: v.number(),
     quality: v.optional(v.string()),
     size: v.optional(v.string()),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   },
   handler: async (ctx, args): Promise<{ urls: string[] }> => {
     await requireUser(ctx);
     const openai = getOpenAI();
 
-    const response = await openai.images.generate({
-      model: "gpt-image-2",
-      prompt: args.prompt,
+    const references = [...(args.referenceImages ?? [])]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .slice(0, 8);
+    const referencePrompt = composeReferenceInstructions(references as ReferenceValue[]);
+    const prompt = referencePrompt ? `${args.prompt}\n\nREFERENCE GUIDANCE:\n${referencePrompt}` : args.prompt;
+    const imageFiles = (
+      await Promise.all(
+        references.map(async (reference, index) => {
+          if (!reference.url) return null;
+          try {
+            const source = await fetch(reference.url);
+            if (!source.ok) return null;
+            const contentType = source.headers.get("content-type") ?? "image/png";
+            return new File([await source.arrayBuffer()], `reference-${index + 1}`, {
+              type: contentType,
+            });
+          } catch {
+            return null;
+          }
+        }),
+      )
+    ).filter((file): file is File => file !== null);
+
+    // GPT Image accepts multiple input images through the edits path. If a
+    // stored URL has expired or cannot be fetched, role-based prompt guidance
+    // remains in place and generation still proceeds.
+    const common = {
+      model: "gpt-image-2" as const,
+      prompt,
       n: Math.min(args.n, 4),
-      quality:
-        args.quality === "hd" || args.quality === "high" ? "high" : "medium",
+      quality: args.quality === "hd" || args.quality === "high" ? "high" as const : "medium" as const,
       size: args.size ?? "1024x1024",
-    });
+    };
+    const response = imageFiles.length
+      ? await openai.images.edit({ ...common, image: imageFiles })
+      : await openai.images.generate(common);
 
     const images = (response.data ?? [])
       .map((image) => image.b64_json)
@@ -144,6 +178,7 @@ export const composePrompt = action({
     platform: v.optional(v.string()),
     staffInstruction: v.string(),
     avoidList: v.optional(v.string()),
+    referenceImages: v.optional(v.array(selectedReferenceImage)),
   },
   handler: async (ctx, args): Promise<{ fullPrompt: string }> => {
     await requireUser(ctx);
@@ -163,6 +198,7 @@ SELECTED PRODUCT/SERVICE: ${args.selectedProduct ?? "Not provided"}
 PLATFORM/FORMAT: ${args.platform ?? "Not specified"}
 STAFF INSTRUCTION: ${args.staffInstruction}
 AVOID: ${args.avoidList ?? "Nothing specified"}
+REFERENCE INSTRUCTIONS: ${composeReferenceInstructions(args.referenceImages as ReferenceValue[] | undefined) || "No reference images selected"}
 
 Write a single detailed prompt (2-4 sentences) for AI image generation that:
 - Reflects the brand visual style and personality
@@ -170,6 +206,7 @@ Write a single detailed prompt (2-4 sentences) for AI image generation that:
 - Features the product/service naturally
 - Is optimized for the platform format
 - Avoids any listed negative elements
+- Follows the supplied reference roles and preservation strengths without mentioning internal reference numbering in the final prompt
 Output only the prompt text, nothing else.`;
 
     const model = "gpt-5-mini";
