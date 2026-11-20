@@ -27,6 +27,7 @@
     "date-fns": "^4.4.0",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
+    "lucia": "3.2.2",
     "lucide-react": "^1.21.0",
     "modern-screenshot": "^4.7.0",
     "motion": "^12.41.0",

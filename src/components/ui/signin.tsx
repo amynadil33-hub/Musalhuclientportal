@@ -23,6 +23,15 @@ function getErrorMessage(error: unknown) {
     if (message.includes("AccountRejected")) {
       return "This account request was not approved.";
     }
+    if (message.includes("InvalidEmail")) {
+      return "Enter a valid email address.";
+    }
+    if (message.includes("InvalidPassword")) {
+      return "Password must be at least 8 characters.";
+    }
+    if (message.includes("Invalid credentials")) {
+      return "The email or password is incorrect.";
+    }
     return message || "Authentication failed.";
   }
   return "Authentication failed.";
@@ -44,7 +53,10 @@ export function SignInForm() {
       toast.success(flow === "signIn" ? "Welcome back" : "Account created");
     } catch (error) {
       const description = getErrorMessage(error);
-      if (flow === "signUp" && description.includes("waiting for owner approval")) {
+      if (
+        flow === "signUp" &&
+        description.includes("waiting for owner approval")
+      ) {
         toast.success("Account request submitted", { description });
         setFlow("signIn");
         return;
