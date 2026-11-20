@@ -14,8 +14,11 @@ function getErrorMessage(error: unknown) {
     if (message.includes("InvalidSecret")) {
       return "The email or password is incorrect.";
     }
-    if (message.includes("AccountAlreadyExists")) {
-      return "An account already exists for this email.";
+    if (
+      message.includes("AccountAlreadyExists") ||
+      message.includes("already exists")
+    ) {
+      return "An account already exists for this email. Please sign in instead.";
     }
     if (message.includes("AccountPendingApproval")) {
       return "Your account is waiting for owner approval.";
@@ -58,6 +61,11 @@ export function SignInForm() {
         description.includes("waiting for owner approval")
       ) {
         toast.success("Account request submitted", { description });
+        setFlow("signIn");
+        return;
+      }
+      if (flow === "signUp" && description.includes("already exists")) {
+        toast.error("Account already exists", { description });
         setFlow("signIn");
         return;
       }

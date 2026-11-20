@@ -34,6 +34,21 @@ const passwordProvider = ConvexCredentials({
     const password = passwordValue(params.password);
 
     if (flow === "signUp") {
+      try {
+        await retrieveAccount(ctx, {
+          provider: "password",
+          account: { id: email },
+        });
+        throw new Error("AccountAlreadyExists");
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          !error.message.includes("InvalidAccountId")
+        ) {
+          throw error;
+        }
+      }
+
       // Account creation runs in its own committed mutation. Returning null
       // deliberately avoids creating a session for a pending account.
       await createAccount(ctx, {
