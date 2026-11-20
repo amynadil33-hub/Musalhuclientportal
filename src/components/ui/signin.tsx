@@ -14,6 +14,9 @@ function getErrorMessage(error: unknown) {
     if (message.includes("InvalidSecret")) {
       return "The email or password is incorrect.";
     }
+    if (message.includes("InvalidAccountId")) {
+      return "No account exists for this email. Create an account instead.";
+    }
     if (
       message.includes("AccountAlreadyExists") ||
       message.includes("already exists")
@@ -67,6 +70,11 @@ export function SignInForm() {
       if (flow === "signUp" && description.includes("already exists")) {
         toast.error("Account already exists", { description });
         setFlow("signIn");
+        return;
+      }
+      if (flow === "signIn" && description.includes("No account exists")) {
+        toast.error("Account not found", { description });
+        setFlow("signUp");
         return;
       }
       toast.error(
